@@ -1,26 +1,175 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --stadium-dark: #0d010e;
+  --electric-blue: #04f5ff;
+  --pitch-green: #00ff85;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Roboto, sans-serif;
+  background-color: var(--stadium-dark);
+  background-image: radial-gradient(
+      circle at 50% -20%,
+      rgba(4, 245, 255, 0.15),
+      transparent 80%
+    ),
+    url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
+  color: white;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.font-heading {
+  font-family: Montserrat, sans-serif;
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: 0.3s;
+}
+
+.glass-input:focus {
+  border-color: var(--electric-blue);
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: rgba(4, 245, 255, 0.2) 0px 0px 15px;
+}
+
+.btn-primary {
+  background: var(--electric-blue);
+  color: var(--stadium-dark);
+  transition: 0.3s;
+  box-shadow: rgba(4, 245, 255, 0.3) 0px 4px 20px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: rgba(4, 245, 255, 0.5) 0px 6px 25px;
+}
+
+.social-btn {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: 0.2s;
+}
+
+.social-btn:hover {
+  border-color: rgb(255, 255, 255);
+  box-shadow: rgba(255, 255, 255, 0.25) 0px 0px 12px;
+}
+
+/* ── Dashboard-specific styles ── */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.top-bar {
+  background: rgba(13, 1, 14, 0.9);
+  backdrop-filter: blur(15px);
+  border-bottom: 1px solid var(--glass-border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+#side-drawer {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(13, 1, 14, 0.98);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid var(--glass-border);
+  z-index: 100;
+  max-height: 100vh;
+}
+
+#side-drawer .drawer-scroll {
+  overscroll-behavior: contain;
+}
+
+#drawer-overlay {
+  transition: opacity 0.3s;
+  z-index: 90;
+}
+
+.drawer-item {
+  transition: 0.3s;
+  border-radius: 1rem;
+}
+
+.drawer-item:hover {
+  background: rgba(4, 245, 255, 0.1);
+  color: var(--electric-blue);
+}
+
+.contest-card {
+  background: white;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  color: rgb(30, 41, 59);
+  transition: transform 0.3s;
+}
+
+.contest-card:hover {
+  transform: translateY(-5px);
+}
+
+.wallet-pill {
+  background: linear-gradient(90deg, rgba(4, 245, 255, 0.1), rgba(4, 245, 255, 0.05));
+  border: 1px solid rgba(4, 245, 255, 0.2);
+}
+
+@media (max-width: 767px) {
+  main.app-container {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Notice strip */
+@keyframes portal-notice-txt-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+@keyframes portal-notice-strip-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes portal-notice-icon-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.45; }
+}
+.app-notice-strip__track {
+  display: flex;
+  width: max-content;
+  animation: portal-notice-strip-marquee 100s linear infinite;
+}
+.app-notice-strip { align-items: stretch; }
+.notice-text-blink { animation: portal-notice-txt-blink 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-notice-strip__track { animation: none !important; display: block; width: 100% !important; max-width: 100%; transform: none; }
+  .app-notice-strip__set--primary { display: flex !important; flex-wrap: wrap; }
+  .app-notice-strip__set--clone { display: none !important; }
+  .notice-text-blink { animation: none !important; opacity: 1; }
+}
+
+/* Welcome marquee */
+@keyframes dashboard-welcome-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.dashboard-welcome-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: dashboard-welcome-marquee 55s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-welcome-marquee-track {
+    animation: none;
+    transform: none;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
