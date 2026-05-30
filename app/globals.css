@@ -122,7 +122,23 @@ body {
 
 @media (max-width: 767px) {
   main.app-container {
-    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Prevent horizontal overflow on mobile */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Wallet pill compact on mobile */
+  .wallet-pill {
+    max-width: 45vw;
+  }
+
+  /* Contest cards get a slight shadow enhancement on mobile */
+  .contest-card {
+    border-radius: 1.25rem;
   }
 }
 
