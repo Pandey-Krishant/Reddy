@@ -17,9 +17,10 @@ body {
     url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
   color: white;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  /* flex removed — causes width issues on mobile */
   overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 .font-heading {
@@ -60,10 +61,17 @@ body {
   box-shadow: rgba(255, 255, 255, 0.25) 0px 0px 12px;
 }
 
+/* Global overflow guard */
+html {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 /* ── Dashboard-specific styles ── */
 .app-container {
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
 }
 
 .top-bar {
@@ -125,18 +133,10 @@ body {
     padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
   }
 
-  /* Prevent horizontal overflow on mobile */
-  html, body {
-    overflow-x: hidden;
-    max-width: 100vw;
-  }
-
-  /* Wallet pill compact on mobile */
   .wallet-pill {
     max-width: 45vw;
   }
 
-  /* Contest cards get a slight shadow enhancement on mobile */
   .contest-card {
     border-radius: 1.25rem;
   }

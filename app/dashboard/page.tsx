@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 interface Contest {
@@ -25,6 +26,14 @@ interface Wallet {
   balance: number;
   exposure: number;
   username: string;
+}
+
+interface BetRecord {
+  id: string;
+  matchId: number;
+  status: string;
+  selectedTeam: string;
+  amount: number;
 }
 
 /* ── Notice color maps ──────────────────────────────────────────── */
@@ -97,58 +106,165 @@ function fmt(ms: number) {
   return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m ${s % 60}s`;
 }
 
-/* ── Contest Card ───────────────────────────────────────────────── */
 function ContestCard({ c, now, onOpen }: { c: Contest; now: number; onOpen: (c: Contest) => void }) {
+  const bgColors = [
+    "bg-slate-900",
+    "bg-gradient-to-r from-slate-900 to-slate-800",
+    "bg-gradient-to-r from-slate-900 to-indigo-950",
+    "bg-gradient-to-r from-slate-900 to-sky-950",
+    "bg-gradient-to-r from-slate-900 to-emerald-950",
+  ];
+  const bgClass = bgColors[c.id % bgColors.length];
+
   return (
-    <div className="contest-card shadow-xl cursor-pointer active:scale-[0.98] transition-transform" onClick={() => onOpen(c)}>
-      <div className={`relative h-20 flex items-center justify-center overflow-hidden ${c.gradient}`}>
+    <div
+      className="w-full overflow-hidden rounded-2xl shadow-xl cursor-pointer bg-white transition-all duration-200 active:scale-[0.98]"
+      onClick={() => onOpen(c)}
+    >
+      {/* Dark section */}
+      <div className={`relative overflow-hidden ${bgClass}`}>
+        {/* Carbon fibre overlay */}
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-        <div className="relative z-10 w-full h-full px-4 flex flex-col justify-center">
-          <div className="w-full mb-1 flex items-center justify-between gap-2">
-            <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-amber-300 truncate">{c.title}</span>
-            <span className="inline-flex items-center gap-1 text-[9px] text-emerald-200 shrink-0">
-              <i className="fa-solid fa-gamepad" /><span>Game</span>
+
+        <div className="relative z-10 w-full px-3 pt-2 pb-2.5 flex flex-col gap-2">
+
+          {/* Title row */}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-amber-300 leading-tight line-clamp-2 flex-1">
+              {c.title}
+            </span>
+            <span className="inline-flex items-center gap-0.5 text-[8px] text-emerald-200 font-bold shrink-0">
+              <i className="fa-solid fa-gamepad text-[9px]" />
+              <span>Game</span>
             </span>
           </div>
-          <div className="flex items-center justify-around w-full text-white">
-            <div className="text-center flex-1 min-w-0">
-              <div className="text-lg font-black italic truncate">{c.team_a}</div>
+
+          {/* Teams row — fixed 3-column: teamA | VS | teamB */}
+          <div className="grid text-white" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
+
+            {/* Team A */}
+            <div className="flex flex-col items-center justify-center text-center pr-2 gap-0.5">
+              <p className="text-xs font-black italic uppercase leading-tight break-words hyphens-auto w-full text-center">
+                {c.team_a}
+              </p>
               {c.has_bid && c.selected_team.toLowerCase() === c.team_a.toLowerCase() && (
-                <div className="text-[9px] font-semibold text-[#a3e635]">{c.bid_points.toLocaleString()} Rs.</div>
+                <span className="text-[8px] font-black text-[#a3e635] leading-none">
+                  {c.bid_points.toLocaleString()} Rs.
+                </span>
               )}
             </div>
-            <div className="flex flex-col items-center shrink-0 gap-0.5 px-2">
-              <div className="bg-white/10 px-2.5 py-1 rounded-full text-[9px] font-black uppercase italic">VS</div>
-              <div className="text-[7px] md:text-[8px] font-semibold tabular-nums text-yellow-300 leading-none whitespace-nowrap">
+
+            {/* VS + countdown */}
+            <div className="flex flex-col items-center justify-center gap-1 px-1">
+              <span className="bg-white/10 rounded-full px-2 py-0.5 text-[8px] font-black uppercase italic whitespace-nowrap">
+                VS
+              </span>
+              <span className="text-[7px] font-semibold text-yellow-300 whitespace-nowrap tabular-nums leading-none">
                 {fmt(c.close_time_ms - now)}
-              </div>
+              </span>
             </div>
-            <div className="text-center flex-1 min-w-0">
-              <div className="text-lg font-black italic truncate">{c.team_b}</div>
+
+            {/* Team B */}
+            <div className="flex flex-col items-center justify-center text-center pl-2 gap-0.5">
+              <p className="text-xs font-black italic uppercase leading-tight break-words hyphens-auto w-full text-center">
+                {c.team_b}
+              </p>
               {c.has_bid && c.selected_team.toLowerCase() === c.team_b.toLowerCase() && (
-                <div className="text-[9px] font-semibold text-[#a3e635]">{c.bid_points.toLocaleString()} Rs.</div>
+                <span className="text-[8px] font-black text-[#a3e635] leading-none">
+                  {c.bid_points.toLocaleString()} Rs.
+                </span>
               )}
             </div>
+
           </div>
         </div>
       </div>
-      <div className={`h-7 flex items-center justify-center text-[10px] font-semibold tracking-widest uppercase ${c.has_bid ? "bg-lime-400" : "bg-[#facc15]"} text-slate-900`}>
-        {c.has_bid ? `BET placed • TOSS BET CLOSE TIME : ${c.close_time_label}` : `TOSS BET CLOSE TIME : ${c.close_time_label}`}
+
+      {/* Footer bar */}
+      <div className={`w-full flex items-center justify-center px-3 py-1.5 ${c.has_bid ? "bg-lime-400" : "bg-[#facc15]"}`}>
+        <span className="text-[8px] font-bold uppercase tracking-widest text-slate-900 text-center leading-tight">
+          {c.has_bid
+            ? `✓ BET PLACED · CLOSE: ${c.close_time_label}`
+            : `TOSS BET CLOSE TIME : ${c.close_time_label}`}
+        </span>
       </div>
     </div>
   );
 }
 
+
 /* ── Sidebar ────────────────────────────────────────────────────── */
-function Sidebar({ open, onClose, wallet }: { open: boolean; onClose: () => void; wallet: Wallet | null }) {
+function Sidebar({
+  open,
+  onClose,
+  wallet,
+}: {
+  open: boolean;
+  onClose: () => void;
+  wallet: Wallet | null;
+}) {
   const navItems = [
-    { href: "/dashboard", label: "Lobby", active: true, icon: <svg className="w-6 h-6 text-[#04f5ff]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg> },
-    { href: "/bets/pending", label: "Pending BETs", icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
-    { href: "/user/statement", label: "Statement", icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
-    { href: "/achievements", label: "Achievement Posts", icon: <i className="fa-solid fa-trophy w-6 text-center text-amber-400 text-lg" style={{ minWidth: "1.5rem" }} /> },
-    { href: "/rules", label: "Rules", icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
-    { href: "/schedules", label: "Schedules", icon: <i className="fa-regular fa-calendar-days w-6 text-center text-[#04f5ff] text-lg" style={{ minWidth: "1.5rem" }} /> },
-    { href: "https://t.me/puntingtossbookcustomercare", label: "Customer Support", target: "_blank", icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18 10c0-3.314-2.686-6-6-6S6 6.686 6 10v2a4 4 0 00-4 4v1a1 1 0 001 1h3m12-6v2a4 4 0 01-4 4h-1l-2 2m7-8a4 4 0 014 4v1a1 1 0 01-1 1h-3" /></svg> },
+    {
+      href: "/dashboard",
+      label: "Lobby",
+      active: true,
+      icon: (
+        <svg className="w-5 h-5 text-[#04f5ff]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      ),
+    },
+    {
+      href: "/bets/pending",
+      label: "Pending BETs",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    },
+    {
+      href: "/user/statement",
+      label: "Statement",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+    },
+    {
+      href: "/achievements",
+      label: "Achievement Posts",
+      icon: <i className="fa-solid fa-trophy w-5 text-center text-amber-400 text-base" style={{ minWidth: "1.25rem" }} />,
+    },
+    {
+      href: "/rules",
+      label: "Rules",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+    },
+    {
+      href: "/schedules",
+      label: "Schedules",
+      icon: <i className="fa-regular fa-calendar-days w-5 text-center text-[#04f5ff] text-base" style={{ minWidth: "1.25rem" }} />,
+    },
+    {
+      href: "https://t.me/Reddy_win",
+      label: "Customer Support",
+      target: "_blank",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M18 10c0-3.314-2.686-6-6-6S6 6.686 6 10v2a4 4 0 00-4 4v1a1 1 0 001 1h3m12-6v2a4 4 0 01-4 4h-1l-2 2m7-8a4 4 0 014 4v1a1 1 0 01-1 1h-3"
+          />
+        </svg>
+      ),
+    },
   ];
 
   return (
@@ -189,18 +305,34 @@ function Sidebar({ open, onClose, wallet }: { open: boolean; onClose: () => void
                 href={item.href}
                 target={item.target}
                 rel={item.target ? "noopener" : undefined}
-                className={`drawer-item px-3 py-2.5 flex items-center gap-3 ${item.active ? "bg-white/10 text-white shadow-[0_0_18px_rgba(4,245,255,0.45)]" : "text-gray-400"}`}
+                className={`drawer-item px-3 py-2.5 flex items-center gap-3 ${
+                  item.active ? "bg-white/10 text-white shadow-[0_0_18px_rgba(4,245,255,0.45)]" : "text-gray-400"
+                }`}
               >
                 <span className="shrink-0 w-5 flex items-center justify-center">{item.icon}</span>
                 <span className="font-heading font-bold uppercase text-[11px] tracking-wider truncate">{item.label}</span>
               </a>
             ))}
-            <a href="https://t.me/ptbnewbranch" target="_blank" rel="noopener" className="drawer-item px-3 py-2.5 flex items-center gap-3 border border-rose-500/20 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/30">
-              <span className="shrink-0 w-5 flex items-center justify-center"><i className="fa-solid fa-arrow-up-from-bracket" /></span>
+            <a
+              href="https://t.me/Reddy_win"
+              target="_blank"
+              rel="noopener"
+              className="drawer-item px-3 py-2.5 flex items-center gap-3 border border-rose-500/20 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/30"
+            >
+              <span className="shrink-0 w-5 flex items-center justify-center">
+                <i className="fa-solid fa-arrow-up-from-bracket" />
+              </span>
               <span className="font-heading font-bold uppercase text-[11px] tracking-wider">Withdraw</span>
             </a>
-            <a href="https://t.me/ptbnewbranch" target="_blank" rel="noopener" className="drawer-item px-3 py-2.5 flex items-center gap-3 border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/30">
-              <span className="shrink-0 w-5 flex items-center justify-center"><i className="fa-solid fa-download" /></span>
+            <a
+              href="https://t.me/Reddy_win"
+              target="_blank"
+              rel="noopener"
+              className="drawer-item px-3 py-2.5 flex items-center gap-3 border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/30"
+            >
+              <span className="shrink-0 w-5 flex items-center justify-center">
+                <i className="fa-solid fa-download" />
+              </span>
               <span className="font-heading font-bold uppercase text-[11px] tracking-wider">Deposit</span>
             </a>
           </nav>
@@ -208,21 +340,38 @@ function Sidebar({ open, onClose, wallet }: { open: boolean; onClose: () => void
           {/* Footer */}
           <div className="mt-6 border-t border-white/5 pt-5">
             <div className="flex justify-center gap-3 mb-4">
-              <a href="https://www.facebook.com/profile.php?id=61555582344429" target="_blank" rel="noopener" className="w-9 h-9 rounded-full flex items-center justify-center bg-[#1877F2] text-white"><i className="fab fa-facebook-f text-sm" /></a>
-              <a href="https://www.instagram.com/puntingtossbook/" target="_blank" rel="noopener" className="w-9 h-9 rounded-full flex items-center justify-center text-white bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF]"><i className="fab fa-instagram text-sm" /></a>
-              <a href="https://t.me/+rYAxEWE13LU5OGM1" target="_blank" rel="noopener" className="w-9 h-9 rounded-full flex items-center justify-center bg-[#229ED9] text-white"><i className="fab fa-telegram-plane text-sm" /></a>
+              <a
+                href="https://t.me/Reddy_win"
+                target="_blank"
+                rel="noopener"
+                className="w-9 h-9 rounded-full flex items-center justify-center bg-[#229ED9] text-white"
+              >
+                <i className="fab fa-telegram-plane text-sm" />
+              </a>
             </div>
             <div className="flex items-center gap-3 mb-5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${wallet?.username ?? "user"}`} className="w-10 h-10 rounded-2xl border border-white/20 shrink-0" alt="Avatar" />
+              <img
+                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${wallet?.username ?? "user"}`}
+                className="w-10 h-10 rounded-2xl border border-white/20 shrink-0"
+                alt="Avatar"
+              />
               <div className="min-w-0">
-                <p className="font-heading font-black text-sm uppercase italic text-white truncate">{wallet?.username ?? "—"}</p>
+                <p className="font-heading font-black text-sm uppercase italic text-white truncate">
+                  {wallet?.username ?? "—"}
+                </p>
                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Member</p>
               </div>
             </div>
-            <a href="/api/proxy/logout" className="w-full inline-flex items-center justify-center bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white p-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-rose-500/40">
+            <button
+              onClick={async () => {
+                await fetch("/api/local/logout");
+                window.location.href = "/";
+              }}
+              className="w-full inline-flex items-center justify-center bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white p-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-rose-500/40"
+            >
               Sign Out
-            </a>
+            </button>
           </div>
         </div>
       </div>
@@ -233,7 +382,11 @@ function Sidebar({ open, onClose, wallet }: { open: boolean; onClose: () => void
 /* ── Bet Modal ──────────────────────────────────────────────────── */
 type Step = "existing" | "step1" | "step2";
 
-function BetModal({ contest, onClose, onSuccess }: {
+function BetModal({
+  contest,
+  onClose,
+  onSuccess,
+}: {
   contest: Contest | null;
   onClose: () => void;
   onSuccess: (id: number, team: string, total: number) => void;
@@ -248,7 +401,11 @@ function BetModal({ contest, onClose, onSuccess }: {
 
   useEffect(() => {
     if (!contest) return;
-    setErr(""); setAmount(""); setTeam(null); setAddMore(false); setConfirmCancel(false);
+    setErr("");
+    setAmount("");
+    setTeam(null);
+    setAddMore(false);
+    setConfirmCancel(false);
     setStep(contest.has_bid ? "existing" : "step1");
   }, [contest]);
 
@@ -256,43 +413,69 @@ function BetModal({ contest, onClose, onSuccess }: {
 
   const num = parseInt(amount, 10);
   const valid = !isNaN(num) && num >= 100 && num <= 1_000_000;
-  const canNext = addMore ? valid : (team !== null && valid);
+  const canNext = addMore ? valid : team !== null && valid;
   const teamName = team === "A" ? contest.team_a : contest.team_b;
 
   async function placeBet() {
-    setBusy(true); setErr("");
+    setBusy(true);
+    setErr("");
+
     try {
-      const body = new URLSearchParams({ contest_id: String(contest!.id), team: teamName, points: amount });
-      const r = await fetch("/api/proxy/bid/place", {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8", "X-Requested-With": "XMLHttpRequest" },
-        body: body.toString(),
+      const res = await fetch("/api/local/bets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          matchId: contest!.id,
+          matchTitle: contest!.title,
+          teamA: contest!.team_a,
+          teamB: contest!.team_b,
+          selectedTeam: teamName,
+          amount: num,
+        }),
       });
-      const d = await r.json().catch(() => null);
-      if (r.ok && d?.status === "success") {
+      const data = await res.json();
+
+      if (res.ok && data.ok) {
         const total = addMore ? contest!.bid_points + num : num;
         onSuccess(contest!.id, teamName, total);
         onClose();
-      } else { setErr(d?.message ?? "Unable to place bet."); }
-    } catch { setErr("Network error."); }
-    finally { setBusy(false); }
+      } else {
+        setErr(data.error ?? "Failed to place bet");
+      }
+    } catch (e) {
+      setErr("Network error");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function cancelBet() {
-    if (!confirmCancel) { setConfirmCancel(true); return; }
-    setBusy(true); setErr("");
+    if (!confirmCancel) {
+      setConfirmCancel(true);
+      return;
+    }
+    setBusy(true);
+    setErr("");
+
     try {
-      const body = new URLSearchParams({ contest_id: String(contest!.id) });
-      const r = await fetch("/api/proxy/bid/cancel", {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8", "X-Requested-With": "XMLHttpRequest" },
-        body: body.toString(),
+      const res = await fetch("/api/local/bets", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId: contest!.id }),
       });
-      const d = await r.json().catch(() => null);
-      if (r.ok && d?.status === "success") { onSuccess(contest!.id, "", 0); onClose(); }
-      else { setErr(d?.message ?? "Unable to cancel."); }
-    } catch { setErr("Network error."); }
-    finally { setBusy(false); }
+      const data = await res.json();
+
+      if (res.ok && data.ok) {
+        onSuccess(contest!.id, "", 0);
+        onClose();
+      } else {
+        setErr(data.error ?? "Failed to cancel bet");
+      }
+    } catch (e) {
+      setErr("Network error");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -304,7 +487,9 @@ function BetModal({ contest, onClose, onSuccess }: {
           <div className="px-6 py-5 flex items-center justify-between">
             <p className="font-heading font-black text-sm tracking-[0.25em] uppercase text-slate-900">Place Your BET</p>
             <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-200 text-slate-500">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
 
@@ -314,12 +499,30 @@ function BetModal({ contest, onClose, onSuccess }: {
               <div>
                 <p className="font-heading font-black text-sm tracking-[0.25em] uppercase text-sky-600 mb-2">Existing BET</p>
                 <p className="text-[11px] text-slate-500 mb-1">You already placed a BET on this match.</p>
-                <p className="text-[11px] text-slate-700">Supporting <span className="font-black text-sky-700">{contest.selected_team.toUpperCase()}</span> with <span className="font-black text-emerald-700">{contest.bid_points}</span> Rs.</p>
+                <p className="text-[11px] text-slate-700">
+                  Supporting <span className="font-black text-sky-700">{contest.selected_team.toUpperCase()}</span> with{" "}
+                  <span className="font-black text-emerald-700">{contest.bid_points}</span> Rs.
+                </p>
               </div>
               {err && <p className="text-[11px] font-semibold text-rose-500">{err}</p>}
               <div className="flex gap-3">
-                <button onClick={() => { setAddMore(true); setTeam(contest.selected_team.toLowerCase() === contest.team_a.toLowerCase() ? "A" : "B"); setStep("step1"); }} className="flex-1 inline-flex items-center justify-center rounded-3xl bg-sky-500 px-4 py-2.5 text-[11px] font-black tracking-[0.25em] uppercase text-white">Add More</button>
-                <button onClick={cancelBet} disabled={busy} className={`flex-1 inline-flex items-center justify-center rounded-3xl border px-4 py-2.5 text-[11px] font-semibold tracking-[0.25em] uppercase disabled:opacity-50 ${confirmCancel ? "border-rose-400 bg-rose-50 text-rose-600" : "border-slate-300 bg-slate-100 text-slate-700"}`}>
+                <button
+                  onClick={() => {
+                    setAddMore(true);
+                    setTeam(contest.selected_team.toLowerCase() === contest.team_a.toLowerCase() ? "A" : "B");
+                    setStep("step1");
+                  }}
+                  className="flex-1 inline-flex items-center justify-center rounded-3xl bg-sky-500 px-4 py-2.5 text-[11px] font-black tracking-[0.25em] uppercase text-white"
+                >
+                  Add More
+                </button>
+                <button
+                  onClick={cancelBet}
+                  disabled={busy}
+                  className={`flex-1 inline-flex items-center justify-center rounded-3xl border px-4 py-2.5 text-[11px] font-semibold tracking-[0.25em] uppercase disabled:opacity-50 ${
+                    confirmCancel ? "border-rose-400 bg-rose-50 text-rose-600" : "border-slate-300 bg-slate-100 text-slate-700"
+                  }`}
+                >
                   {confirmCancel ? "Confirm Cancel" : "Cancel BET"}
                 </button>
               </div>
@@ -334,7 +537,17 @@ function BetModal({ contest, onClose, onSuccess }: {
                   <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500 mb-3">Select Team</p>
                   <div className="grid grid-cols-2 gap-3">
                     {(["A", "B"] as const).map((t) => (
-                      <button key={t} onClick={() => setTeam(t)} className={`flex items-center justify-center rounded-2xl border px-3 py-4 text-xs font-black tracking-[0.25em] uppercase text-slate-800 transition-all ${team === t ? (t === "A" ? "ring-2 ring-emerald-400 border-emerald-400 bg-emerald-50" : "ring-2 ring-rose-400 border-rose-400 bg-rose-50") : "border-slate-300 bg-white"}`}>
+                      <button
+                        key={t}
+                        onClick={() => setTeam(t)}
+                        className={`flex items-center justify-center rounded-2xl border px-3 py-4 text-xs font-black tracking-[0.25em] uppercase text-slate-800 transition-all ${
+                          team === t
+                            ? t === "A"
+                              ? "ring-2 ring-emerald-400 border-emerald-400 bg-emerald-50"
+                              : "ring-2 ring-rose-400 border-rose-400 bg-rose-50"
+                            : "border-slate-300 bg-white"
+                        }`}
+                      >
                         <span className="text-sm">{t === "A" ? contest.team_a : contest.team_b}</span>
                       </button>
                     ))}
@@ -351,17 +564,40 @@ function BetModal({ contest, onClose, onSuccess }: {
               <div>
                 <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500 mb-2">Enter BET Amount (min 100 Rs.)</p>
                 <div className="rounded-3xl border border-slate-300 bg-white px-5 py-4 flex items-center">
-                  <input type="number" min={100} inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-transparent text-2xl font-black text-slate-900 placeholder-slate-400 focus:outline-none text-center" placeholder="0" />
+                  <input
+                    type="number"
+                    min={100}
+                    inputMode="numeric"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="w-full bg-transparent text-2xl font-black text-slate-900 placeholder-slate-400 focus:outline-none text-center"
+                    placeholder="0"
+                  />
                   <span className="ml-2 text-[11px] font-black tracking-[0.25em] uppercase text-sky-600">Rs.</span>
                 </div>
                 <div className="flex gap-2 mt-3">
                   {[100, 500, 1000, 5000].map((v) => (
-                    <button key={v} onClick={() => setAmount(String(v))} className="text-[10px] px-3 py-2 rounded-2xl bg-slate-100 text-slate-700 font-semibold">+{v}</button>
+                    <button
+                      key={v}
+                      onClick={() => setAmount(String(v))}
+                      className="text-[10px] px-3 py-2 rounded-2xl bg-slate-100 text-slate-700 font-semibold"
+                    >
+                      +{v}
+                    </button>
                   ))}
                 </div>
               </div>
               {err && <p className="text-[11px] font-semibold text-rose-500">{err}</p>}
-              <button onClick={() => { if (canNext) { setErr(""); setStep("step2"); } }} disabled={!canNext} className="w-full inline-flex items-center justify-center rounded-3xl bg-sky-500 px-4 py-3 text-[11px] font-black tracking-[0.25em] uppercase text-white disabled:opacity-40 disabled:cursor-not-allowed">
+              <button
+                onClick={() => {
+                  if (canNext) {
+                    setErr("");
+                    setStep("step2");
+                  }
+                }}
+                disabled={!canNext}
+                className="w-full inline-flex items-center justify-center rounded-3xl bg-sky-500 px-4 py-3 text-[11px] font-black tracking-[0.25em] uppercase text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
                 Review BET
               </button>
             </div>
@@ -385,8 +621,20 @@ function BetModal({ contest, onClose, onSuccess }: {
                 {err && <p className="mt-3 text-[11px] font-semibold text-rose-500">{err}</p>}
               </div>
               <div className="flex gap-3">
-                <button onClick={() => { setStep("step1"); setErr(""); }} className="flex-1 inline-flex items-center justify-center rounded-3xl border border-slate-300 bg-slate-100 px-4 py-2.5 text-[11px] font-semibold tracking-[0.25em] uppercase text-slate-700">Back</button>
-                <button onClick={placeBet} disabled={busy} className="flex-1 inline-flex items-center justify-center rounded-3xl bg-emerald-500 px-4 py-2.5 text-[11px] font-black tracking-[0.25em] uppercase text-white disabled:opacity-50">
+                <button
+                  onClick={() => {
+                    setStep("step1");
+                    setErr("");
+                  }}
+                  className="flex-1 inline-flex items-center justify-center rounded-3xl border border-slate-300 bg-slate-100 px-4 py-2.5 text-[11px] font-semibold tracking-[0.25em] uppercase text-slate-700"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={placeBet}
+                  disabled={busy}
+                  className="flex-1 inline-flex items-center justify-center rounded-3xl bg-emerald-500 px-4 py-2.5 text-[11px] font-black tracking-[0.25em] uppercase text-white disabled:opacity-50"
+                >
                   {busy ? "Placing…" : "Confirm BET"}
                 </button>
               </div>
@@ -416,16 +664,42 @@ export default function DashboardPage() {
     return () => clearInterval(t);
   }, []);
 
+  async function fetchUserWallet() {
+    try {
+      const r = await fetch("/api/local/user");
+      if (r.ok) {
+        const d = await r.json();
+        setWallet({ username: d.username, balance: d.balance, exposure: d.exposure });
+      } else {
+        window.location.href = "/";
+      }
+    } catch (e) {
+      console.error("Failed to fetch wallet", e);
+    }
+  }
+
   /* Fetch live data */
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
+      // 1. Fetch User Data
+      await fetchUserWallet();
+
+      // 2. Fetch User Bets
+      let userBets: BetRecord[] = [];
+      const betsRes = await fetch("/api/local/bets");
+      if (betsRes.ok) {
+        const bd = await betsRes.json();
+        userBets = bd.bets || [];
+      }
+
+      // 3. Fetch PTB Proxy Contests
       const r = await fetch("/api/proxy/dashboard", {
         credentials: "include",
         headers: { "X-Requested-With": "XMLHttpRequest", Accept: "application/json" },
       });
-      // Session expired or not logged in → go back to login
+
       if (r.status === 401) {
         window.location.href = "/";
         return;
@@ -433,27 +707,36 @@ export default function DashboardPage() {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const d = await r.json();
 
-      const list: Contest[] = (d.contests ?? []).map((c: Record<string, unknown>, i: number) => ({
-        id: Number(c.id),
-        title: String(c.title ?? c.match_title ?? c.league ?? "Match"),
-        team_a: String(c.team_a ?? ""),
-        team_b: String(c.team_b ?? ""),
-        close_time_label: String(c.close_time_label ?? c.close_time ?? ""),
-        close_time_ms: Number(c.close_time_ms ?? c.close_timestamp_ms ?? 0),
-        has_bid: Boolean(c.has_bid ?? c.user_bid),
-        selected_team: String(c.selected_team ?? c.bid_team ?? ""),
-        bid_points: Number(c.bid_points ?? c.user_bid_points ?? 0),
-        gradient: GRADIENTS[i % GRADIENTS.length],
-      })).filter((c: Contest) => c.team_a && c.team_b);
+      const list: Contest[] = (d.contests ?? [])
+        .map((c: Record<string, unknown>, i: number) => {
+          const id = Number(c.id);
+          const activeLocalBet = userBets.find((b) => b.matchId === id && b.status === "pending");
+
+          return {
+            id,
+            title: String(c.title ?? c.match_title ?? c.league ?? "Match"),
+            team_a: String(c.team_a ?? ""),
+            team_b: String(c.team_b ?? ""),
+            close_time_label: String(c.close_time_label ?? c.close_time ?? ""),
+            close_time_ms: Number(c.close_time_ms ?? c.close_timestamp_ms ?? 0),
+            has_bid: !!activeLocalBet,
+            selected_team: activeLocalBet ? activeLocalBet.selectedTeam : "",
+            bid_points: activeLocalBet ? activeLocalBet.amount : 0,
+            gradient: GRADIENTS[i % GRADIENTS.length],
+          };
+        })
+        .filter((c: Contest) => c.team_a && c.team_b);
       setContests(list);
 
-      // Parse notices (API may return notices array or derive from contests)
-      const rawNotices: Notice[] = (d.notices ?? []).map((n: Record<string, unknown>, i: number) => ({
-        text: String(n.text ?? n.message ?? ""),
-        color: NOTICE_COLOR_CYCLE[i % NOTICE_COLOR_CYCLE.length],
-      })).filter((n: Notice) => n.text);
+      // Parse notices
+      const rawNotices: Notice[] = (d.notices ?? [])
+        .map((n: Record<string, unknown>, i: number) => ({
+          text: String(n.text ?? n.message ?? ""),
+          color: NOTICE_COLOR_CYCLE[i % NOTICE_COLOR_CYCLE.length],
+        }))
+        .filter((n: Notice) => n.text);
 
-      // Fallback: build notices from active contests if API doesn't provide them
+      // Fallback notices
       if (!rawNotices.length && list.length) {
         const derived = list.slice(0, 5).map((c, i) => ({
           text: `${c.team_a} vs ${c.team_b} — TOSS BET OPEN`,
@@ -463,9 +746,6 @@ export default function DashboardPage() {
       } else {
         setNotices(rawNotices);
       }
-
-      const w = d.wallet ?? d.user;
-      if (w) setWallet({ balance: Number(w.balance ?? w.points ?? 0), exposure: Number(w.exposure ?? 0), username: String(w.username ?? w.name ?? "User") });
     } catch (e) {
       console.error("[dashboard] load error", e);
       setLoadError("Could not load contests. Please try reloading.");
@@ -474,7 +754,9 @@ export default function DashboardPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   function showToast(msg: string) {
     setToast(msg);
@@ -482,21 +764,28 @@ export default function DashboardPage() {
   }
 
   function onBetSuccess(id: number, team: string, total: number) {
-    setContests((prev) => prev.map((c) => c.id === id ? { ...c, has_bid: total > 0, selected_team: team, bid_points: total } : c));
+    setContests((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, has_bid: total > 0, selected_team: team, bid_points: total } : c))
+    );
     showToast(total > 0 ? "BET placed successfully" : "BET cancelled");
+    
+    // Refresh wallet after bet placement/cancellation
+    fetchUserWallet();
   }
 
   return (
     <>
-      {/* Dashboard uses a light background — override the dark login body */}
       <style>{`
         body {
           background-color: rgb(229, 231, 235) !important;
-          background-image:
-            radial-gradient(circle at 0% 0%, rgba(4,245,255,0.08), transparent 55%),
-            radial-gradient(circle at 100% 100%, rgba(0,255,133,0.06), transparent 55%) !important;
+          background-image: none !important;
           color: rgb(15, 23, 42) !important;
+          display: block !important;
+          width: 100% !important;
+          max-width: 100vw !important;
+          overflow-x: hidden !important;
         }
+        * { box-sizing: border-box; }
         @keyframes notice-icon-pulse {
           0%, 100% { opacity: 0.9; }
           50% { opacity: 0.45; }
@@ -513,24 +802,36 @@ export default function DashboardPage() {
       <header className="top-bar px-3 md:px-6 py-2.5 md:py-4 text-white">
         <div className="app-container flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <a href="/dashboard" className="w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(4,245,255,0.3)] hover:opacity-90 transition-opacity shrink-0">
-              <img src="https://puntingtossbook.com/assets/ptb_logo.png" alt="PTB" className="w-full h-full object-contain" />
+            <a
+              href="/dashboard"
+              className="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden flex items-center justify-center shadow-[0_0_15px_rgba(4,245,255,0.3)] hover:opacity-90 transition-opacity shrink-0"
+            >
+              <Image src="/logo.jpg" alt="Reddywin Logo" width={40} height={40} className="w-full h-full object-contain" />
             </a>
-            <a href="https://t.me/ptbnewbranch" target="_blank" rel="noopener" className="inline-flex items-center rounded-full border border-white/20 bg-white/5 px-2.5 py-1 text-[9px] md:text-xs font-heading font-black uppercase tracking-[0.15em] hover:bg-white/10 text-white whitespace-nowrap">
+            <a
+              href="https://t.me/Reddy_win"
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center rounded-full border border-white/20 bg-white/5 px-2.5 py-1 text-[9px] md:text-xs font-heading font-black uppercase tracking-[0.15em] hover:bg-white/10 text-white whitespace-nowrap"
+            >
               Get Match ID
             </a>
           </div>
           <div className="flex items-center gap-2 min-w-0">
-            <div className="wallet-pill flex flex-col px-2 py-1 rounded-full gap-0 min-w-0">
-              <span className="text-[9px] md:text-xs font-black text-[#04f5ff] uppercase whitespace-nowrap">
+            <div className="wallet-pill flex flex-col px-3 py-1 rounded-2xl gap-0 min-w-0 bg-white/5 border border-white/10">
+              <span className="text-[10px] md:text-xs font-black text-[#04f5ff] uppercase whitespace-nowrap">
                 Bal: {wallet ? wallet.balance.toLocaleString() : "—"} Rs.
               </span>
-              <span className="text-[9px] md:text-xs font-bold text-amber-400 uppercase whitespace-nowrap">
+              <span className="text-[10px] md:text-xs font-bold text-amber-400 uppercase whitespace-nowrap">
                 Exp: {wallet ? wallet.exposure.toLocaleString() : "—"} Rs.
               </span>
             </div>
-            <button onClick={() => setDrawerOpen(true)} className="p-2 hover:bg-white/10 rounded-xl transition-colors text-white shrink-0" type="button" aria-label="Open menu">
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="p-2 hover:bg-white/10 rounded-xl transition-colors text-white shrink-0"
+              type="button"
+              aria-label="Open menu"
+            >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
@@ -541,7 +842,6 @@ export default function DashboardPage() {
 
       {/* Main */}
       <main className="px-3 py-4 md:p-6 app-container">
-
         {/* Notice strip */}
         <NoticeStrip notices={notices} />
 
@@ -549,9 +849,13 @@ export default function DashboardPage() {
         <div className="mb-5">
           <div className="rounded-2xl md:rounded-3xl bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 text-slate-900 py-3 md:py-4 shadow-lg overflow-hidden">
             <div className="w-full overflow-hidden px-4 md:px-6">
-              <div className="dashboard-welcome-marquee-track text-slate-900 text-[13px] md:text-base font-medium whitespace-nowrap">
-                <span className="inline-flex items-center shrink-0 pr-16">Welcome to the Punting Toss Book. Asia&apos;s No. 1 Gaming Platform. Min bet 100, Min Withdraw 500, Get 200 for Each Referral.</span>
-                <span className="inline-flex items-center shrink-0 pr-16" aria-hidden="true">Welcome to the Punting Toss Book. Asia&apos;s No. 1 Gaming Platform. Min bet 100, Min Withdraw 500, Get 200 for Each Referral.</span>
+              <div className="dashboard-welcome-marquee-track text-slate-900 text-[13px] md:text-base font-black italic uppercase tracking-wider whitespace-nowrap">
+                <span className="inline-flex items-center shrink-0 pr-16">
+                  Welcome to Reddy Win. Asia&apos;s No. 1 Gaming Platform. Min bet 100, Min Withdraw 500. Get IDs and top up by tapping Deposit!
+                </span>
+                <span className="inline-flex items-center shrink-0 pr-16" aria-hidden="true">
+                  Welcome to Reddy Win. Asia&apos;s No. 1 Gaming Platform. Min bet 100, Min Withdraw 500. Get IDs and top up by tapping Deposit!
+                </span>
               </div>
             </div>
           </div>
@@ -560,14 +864,19 @@ export default function DashboardPage() {
         {/* Section header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <h3 className="font-heading font-black text-sm md:text-lg italic uppercase tracking-wider text-slate-900">Live Contests</h3>
+            <h3 className="font-heading font-black text-sm md:text-lg italic uppercase tracking-wider text-slate-900">
+              Live Contests
+            </h3>
             {!loading && (
-              <span className="inline-flex items-center rounded-full bg-[#ef4444] text-white px-2.5 py-1 text-[10px] font-semibold tracking-[0.18em] uppercase">
+              <span className="inline-flex items-center rounded-full bg-red-600 text-white px-2.5 py-1 text-[10px] font-semibold tracking-[0.18em] uppercase">
                 {contests.length}
               </span>
             )}
           </div>
-          <button onClick={load} className="inline-flex items-center gap-1.5 text-[10px] md:text-xs text-gray-600 font-bold uppercase tracking-widest hover:text-gray-900 transition-colors">
+          <button
+            onClick={load}
+            className="inline-flex items-center gap-1.5 text-[10px] md:text-xs text-gray-600 font-bold uppercase tracking-widest hover:text-slate-900 transition-colors"
+          >
             <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6M20 20v-6h-6" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 19A9 9 0 0 0 19 5" />
@@ -578,49 +887,43 @@ export default function DashboardPage() {
 
         {/* Cards */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="contest-card shadow-xl animate-pulse">
-                <div className="h-20 bg-slate-700" />
-                <div className="h-7 bg-slate-200" />
+              <div key={i} className="shadow-xl animate-pulse rounded-3xl overflow-hidden bg-slate-300" style={{ height: "116px" }}>
+                <div className="h-20 bg-slate-400/40" />
+                <div className="h-7 bg-slate-400/60" />
               </div>
             ))}
           </div>
         ) : loadError ? (
           <div className="text-center py-20">
             <div className="inline-flex flex-col items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center">
-                <i className="fa-solid fa-triangle-exclamation text-rose-500 text-2xl" />
+              <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                <i className="fa-solid fa-triangle-exclamation text-rose-400 text-2xl" />
               </div>
               <p className="font-heading font-black uppercase tracking-widest text-sm text-slate-700">{loadError}</p>
               <button
                 onClick={load}
-                className="inline-flex items-center gap-2 bg-sky-500 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-amber-400 text-slate-950 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest"
               >
                 <i className="fa-solid fa-rotate-right" /> Retry
               </button>
             </div>
           </div>
         ) : contests.length === 0 ? (
-          <div className="text-center py-20 text-slate-500">
+          <div className="text-center py-20 text-gray-500">
             <div className="inline-flex flex-col items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center">
-                <i className="fa-solid fa-gamepad text-slate-400 text-2xl" />
+                <i className="fa-solid fa-gamepad text-gray-400 text-2xl" />
               </div>
-              <p className="font-heading font-black uppercase tracking-widest text-sm mb-1">No live contests right now</p>
-              <p className="text-xs">Check back soon or tap Reload</p>
-              <a
-                href="https://puntingtossbook.com/app/dashboard"
-                target="_blank"
-                rel="noopener"
-                className="text-[10px] text-sky-500 font-semibold underline"
-              >
-                View on original site
-              </a>
+              <p className="font-heading font-black uppercase tracking-widest text-sm mb-1 text-slate-700">
+                No live contests right now
+              </p>
+              <p className="text-xs text-gray-500">Check back soon or tap Reload</p>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {contests.map((c) => (
               <ContestCard key={c.id} c={c} now={now} onOpen={setActiveContest} />
             ))}
@@ -629,15 +932,13 @@ export default function DashboardPage() {
       </main>
 
       {/* Bet Modal */}
-      {activeContest && (
-        <BetModal contest={activeContest} onClose={() => setActiveContest(null)} onSuccess={onBetSuccess} />
-      )}
+      {activeContest && <BetModal contest={activeContest} onClose={() => setActiveContest(null)} onSuccess={onBetSuccess} />}
 
       {/* Toast */}
       {toast && (
         <div className="fixed inset-x-0 bottom-4 z-50 flex justify-center pointer-events-none">
-          <div className="pointer-events-auto bg-emerald-500 text-slate-950 px-5 py-2.5 rounded-full shadow-lg text-[11px] font-semibold tracking-[0.18em] uppercase flex items-center gap-2">
-            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-950/10">✓</span>
+          <div className="pointer-events-auto bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-full shadow-lg text-[11px] font-black tracking-[0.18em] uppercase flex items-center gap-2">
+            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-950/15 font-bold">✓</span>
             {toast}
           </div>
         </div>
