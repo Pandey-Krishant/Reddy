@@ -12,14 +12,20 @@ const MatchSchema = new Schema({
   team_b:           { type: String, required: true },
   close_time_label: { type: String, required: true },
   close_time_ms:    { type: Number, required: true },
-  // "active" | "suspended" | "resulted"
   status:           { type: String, enum: ["active","suspended","resulted"], default: "active" },
-  // toss winner — null until admin sets it
   toss_winner:      { type: String, default: null },
-  // match winner — null until admin sets it
   match_winner:     { type: String, default: null },
   order:            { type: Number, default: 0 },
   createdAt:        { type: Date, default: Date.now },
+});
+
+const AchievementSchema = new Schema({
+  title:      { type: String, required: true },
+  body:       { type: String, required: true },
+  emoji:      { type: String, default: "🏆" },
+  color:      { type: String, enum: ["gold","emerald","sky","rose","violet"], default: "gold" },
+  order:      { type: Number, default: 0 },
+  createdAt:  { type: Date, default: Date.now },
 });
 
 const SiteConfigSchema = new Schema({
@@ -28,9 +34,11 @@ const SiteConfigSchema = new Schema({
     type: String,
     default: "Welcome to the Platform. Asia's No. 1 Gaming Platform. Min bet 100, Min Withdraw 500, Get 200 for Each Referral.",
   },
-  notices: { type: [NoticeSchema], default: [] },
-  matches: { type: [MatchSchema], default: [] },
-  updatedAt: { type: Date, default: Date.now },
+  notices:      { type: [NoticeSchema], default: [] },
+  matches:      { type: [MatchSchema], default: [] },
+  achievements: { type: [AchievementSchema], default: [] },
+  rules_text:   { type: String, default: "" },
+  updatedAt:    { type: Date, default: Date.now },
 });
 
 export const SiteConfig = models.SiteConfig || model("SiteConfig", SiteConfigSchema);

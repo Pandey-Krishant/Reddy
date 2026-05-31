@@ -13,11 +13,16 @@ interface AdminMatch {
   toss_winner:string|null; match_winner:string|null; order:number;
 }
 interface ProxyMatch { id:number; title:string; team_a:string; team_b:string; close_time_label:string; close_time_ms:number; }
-interface SiteConfig { welcome_text:string; notices:Notice[]; matches:AdminMatch[]; }
+interface SiteConfig { welcome_text:string; notices:Notice[]; matches:AdminMatch[]; achievements:Achievement[]; rules_text:string; }
+
+interface Achievement { _id?:string; title:string; body:string; emoji:string; color:"gold"|"emerald"|"sky"|"rose"|"violet"; order:number; }
+const ACHIEVEMENT_COLORS:Achievement["color"][] = ["gold","emerald","sky","rose","violet"];
+const ACH_COLOR_LABELS:Record<Achievement["color"],string> = { gold:"🥇 Gold", emerald:"🟢 Emerald", sky:"🔵 Sky", rose:"🔴 Rose", violet:"🟣 Violet" };
+const emptyAchievement = ():Achievement => ({ title:"", body:"", emoji:"🏆", color:"gold", order:0 });
 
 const NOTICE_COLORS:Notice["color"][] = ["rose","amber","emerald","violet","sky"];
 const COLOR_LABELS:Record<Notice["color"],string> = { rose:"🔴 Rose",amber:"🟡 Amber",emerald:"🟢 Emerald",violet:"🟣 Violet",sky:"🔵 Sky" };
-const TABS = ["Matches","Live Matches","Notices","Banner","Users","Bets"] as const;
+const TABS = ["Matches","Live Matches","Notices","Banner","Achievements","Rules","Users","Bets"] as const;
 type Tab = typeof TABS[number];
 const GRADIENTS = ["bg-slate-900","bg-gradient-to-r from-slate-900 to-slate-800","bg-gradient-to-r from-slate-900 to-indigo-950","bg-gradient-to-r from-slate-900 to-sky-950","bg-gradient-to-r from-slate-900 to-emerald-950"];
 
@@ -161,7 +166,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("Matches");
   const [users, setUsers] = useState<UserData[]>([]);
   const [bets, setBets] = useState<BetData[]>([]);
-  const [config, setConfig] = useState<SiteConfig>({ welcome_text:"", notices:[], matches:[] });
+  const [config, setConfig] = useState<SiteConfig>({ welcome_text:"", notices:[], matches:[], achievements:[], rules_text:"" });
   const [proxyMatches, setProxyMatches] = useState<ProxyMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -179,7 +184,9 @@ export default function AdminPage() {
   const [proxyEditId, setProxyEditId] = useState<number|null>(null);
   const [proxyForm, setProxyForm] = useState<AdminMatch>(emptyMatch());
 
-  /* Notice form */
+  /* Achievement form */
+  const [achForm, setAchForm] = useState<Achievement>(emptyAchievement());
+  const [editAchIdx, setEditAchIdx] = useState<number|null>(null);
   const [noticeForm, setNoticeForm] = useState<Notice>({ text:"",color:"amber",order:0 });
   const [editNoticeIdx, setEditNoticeIdx] = useState<number|null>(null);
 
@@ -198,7 +205,7 @@ export default function AdminPage() {
       const cf = await cfgRes.json();
       setUsers(ad.users||[]);
       setBets(ad.bets||[]);
-      setConfig({ welcome_text:cf.welcome_text||"", notices:cf.notices||[], matches:cf.matches||[] });
+      setConfig({ welcome_text:cf.welcome_text||"", notices:cf.notices||[], matches:cf.matches||[], achievements:cf.achievements||[], rules_text:cf.rules_text||"" });
       if (proxyRes.ok) {
         const pd = await proxyRes.json();
         setProxyMatches((pd.contests||[]).map((c:Record<string,unknown>)=>({
@@ -275,6 +282,20 @@ export default function AdminPage() {
     const res=await fetch("/api/local/admin",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({betId,status})});
     if(res.ok){showToast(`Marked ${status} ✓`);load();}else showToast("Failed");
   }
+  /* Achievement CRUD */
+  function saveAchievement() {
+    if (!achForm.title.trim()||!achForm.body.trim()) { showToast("Title and body required"); return; }
+    const updated=[...config.achievements];
+    if (editAchIdx!==null&&editAchIdx>=0) updated[editAchIdx]=achForm;
+    else updated.push({...achForm,order:updated.length});
+    setConfig(c=>({...c,achievements:updated})); saveConfig({achievements:updated});
+    setEditAchIdx(null); setAchForm(emptyAchievement());
+  }
+  function deleteAchievement(i:number) {
+    const updated=config.achievements.filter((_,idx)=>idx!==i);
+    setConfig(c=>({...c,achievements:updated})); saveConfig({achievements:updated});
+  }
+
   async function handleLogout() { await fetch("/api/local/logout"); window.location.href="/"; }
 
   if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="text-white text-sm font-bold animate-pulse">Loading…</div></div>;
@@ -532,6 +553,93 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══ ACHIEVEMENTS TAB ══ */}
+        {tab==="Achievements"&&(
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-black text-white uppercase tracking-widest">Achievement Posts</h2>
+              <button onClick={()=>{setEditAchIdx(-1);setAchForm(emptyAchievement());}} className="bg-[#04f5ff] text-slate-900 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90">+ Add Post</button>
+            </div>
+
+            {editAchIdx!==null&&(
+              <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700 space-y-4">
+                <h3 className="text-sm font-black text-white uppercase tracking-widest">{editAchIdx>=0?"Edit":"New"} Achievement Post</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div><label className="label">Title</label><input value={achForm.title} onChange={e=>setAchForm(f=>({...f,title:e.target.value}))} placeholder="e.g. Big Win Alert!" className="inp"/></div>
+                  <div className="flex gap-2">
+                    <div className="flex-1"><label className="label">Emoji</label><input value={achForm.emoji} onChange={e=>setAchForm(f=>({...f,emoji:e.target.value}))} placeholder="🏆" className="inp text-center text-xl"/></div>
+                    <div className="flex-1"><label className="label">Color</label>
+                      <select value={achForm.color} onChange={e=>setAchForm(f=>({...f,color:e.target.value as Achievement["color"]}))} className="inp">
+                        {ACHIEVEMENT_COLORS.map(c=><option key={c} value={c}>{ACH_COLOR_LABELS[c]}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="md:col-span-2"><label className="label">Body / Message</label>
+                    <textarea value={achForm.body} onChange={e=>setAchForm(f=>({...f,body:e.target.value}))} rows={4} placeholder="Write the achievement post content here..." className="inp resize-none"/>
+                  </div>
+                </div>
+                {/* Preview */}
+                <div className="bg-gradient-to-br from-yellow-950/80 to-amber-950/80 border border-yellow-500/30 rounded-2xl p-4 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{achForm.emoji||"🏆"}</span>
+                    <h3 className="font-heading font-black text-sm uppercase tracking-widest text-yellow-300">{achForm.title||"Title"}</h3>
+                  </div>
+                  <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{achForm.body||"Body text..."}</p>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={saveAchievement} disabled={saving} className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-50">{saving?"Saving…":"Save Post"}</button>
+                  <button onClick={()=>setEditAchIdx(null)} className="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {config.achievements.length===0&&<div className="text-center py-12 text-slate-500 text-sm">No achievement posts yet.</div>}
+              {config.achievements.map((a,i)=>(
+                <div key={i} className="bg-slate-800 rounded-2xl p-4 border border-slate-700 flex items-start gap-4">
+                  <span className="text-2xl shrink-0">{a.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-white text-sm uppercase tracking-widest">{a.title}</p>
+                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">{a.body}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={()=>{setEditAchIdx(i);setAchForm({...a});}} className="text-sky-400 hover:text-sky-300 text-[10px] font-bold uppercase">Edit</button>
+                    <button onClick={()=>deleteAchievement(i)} className="text-rose-400 hover:text-rose-300 text-[10px] font-bold">✕</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ══ RULES TAB ══ */}
+        {tab==="Rules"&&(
+          <div className="space-y-6">
+            <h2 className="text-lg font-black text-white uppercase tracking-widest">Rules Page Content</h2>
+            <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700 space-y-4">
+              <div>
+                <label className="label mb-2">Rules Text (one rule per line)</label>
+                <textarea value={config.rules_text} onChange={e=>setConfig(c=>({...c,rules_text:e.target.value}))}
+                  rows={14} placeholder={"1. Minimum bet amount is 100 Rs.\n2. Minimum withdrawal is 500 Rs.\n3. ..."}
+                  className="inp resize-none font-mono text-xs leading-relaxed"/>
+              </div>
+              {/* Preview */}
+              <div>
+                <p className="label mb-2">Preview</p>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {config.rules_text.split("\n").filter(l=>l.trim()).map((line,i)=>(
+                    <div key={i} className="flex items-start gap-3 bg-white/5 rounded-xl px-3 py-2">
+                      <span className="shrink-0 w-5 h-5 rounded-full bg-[#04f5ff]/20 text-[#04f5ff] text-[9px] font-black flex items-center justify-center mt-0.5">{i+1}</span>
+                      <p className="text-xs text-slate-300">{line.replace(/^\d+\.\s*/,"")}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <button onClick={()=>saveConfig({rules_text:config.rules_text})} disabled={saving} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-50">{saving?"Saving…":"Save Rules"}</button>
             </div>
           </div>
         )}
