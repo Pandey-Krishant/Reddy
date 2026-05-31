@@ -411,6 +411,15 @@ export default function AdminPage() {
                         }} className={`flex-1 rounded-lg py-1.5 text-[10px] font-bold uppercase ${display.status==="suspended"?"bg-emerald-500/20 text-emerald-400":"bg-red-500/20 text-red-400"}`}>
                           {display.status==="suspended"?"Activate":"Suspend"}
                         </button>
+                        {/* Delete override — removes admin override so match goes back to normal */}
+                        {override && (
+                          <button onClick={()=>{
+                            const updated=config.matches.filter(m=>!(m.title===pm.title&&m.team_a===pm.team_a));
+                            setConfig(c=>({...c,matches:updated})); saveConfig({matches:updated});
+                          }} className="bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 rounded-lg px-3 py-1.5 text-[10px] font-bold" title="Remove override / delete">
+                            🗑
+                          </button>
+                        )}
                       </div>
                       {/* Toss quick-set */}
                       <div className="flex gap-1.5 items-center">
