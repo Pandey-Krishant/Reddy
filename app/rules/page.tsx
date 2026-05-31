@@ -19,8 +19,8 @@ export default function RulesPage() {
 
   useEffect(() => {
     fetch("/api/local/siteconfig")
-      .then(r => r.ok ? r.json() : {})
-      .then(d => setRules(d.rules_text || DEFAULT_RULES))
+      .then(r => r.ok ? r.json() : { rules_text: "" })
+      .then((d: { rules_text?: string }) => setRules(d.rules_text || DEFAULT_RULES))
       .finally(() => setLoading(false));
   }, []);
 

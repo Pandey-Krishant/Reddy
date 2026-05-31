@@ -25,8 +25,8 @@ export default function AchievementsPage() {
 
   useEffect(() => {
     fetch("/api/local/siteconfig")
-      .then(r => r.ok ? r.json() : {})
-      .then(d => setAchievements(d.achievements || []))
+      .then(r => r.ok ? r.json() : { achievements: [] })
+      .then((d: { achievements?: Achievement[] }) => setAchievements(d.achievements || []))
       .finally(() => setLoading(false));
   }, []);
 
