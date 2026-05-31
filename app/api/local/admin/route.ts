@@ -90,18 +90,26 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Associated user not found" }, { status: 404 });
     }
 
+    // Payout structure:
+    // Win  → user gets back stake + 95% profit (5% platform fee deducted)
+    //         e.g. bet ₹100 → receive ₹195  (profit ₹95, fee ₹5)
+    // Loss → user loses full stake (no refund)
+    const PLATFORM_FEE = 0.05; // 5%
+    const winPayout = bet.amount + bet.amount * (1 - PLATFORM_FEE); // stake + 95% profit
+
     if (oldStatus === "pending") {
       user.exposure = Math.max(0, user.exposure - bet.amount);
       if (status === "won") {
-        user.balance += bet.amount * 2;
+        user.balance += winPayout; // return stake + 95% profit
       } else if (status === "cancelled") {
-        user.balance += bet.amount;
+        user.balance += bet.amount; // full refund on cancel
       }
+      // "lost" → no balance change (stake already deducted when bet was placed)
     } else {
       if (status === "pending") {
         user.exposure += bet.amount;
         if (oldStatus === "won") {
-          user.balance = Math.max(0, user.balance - bet.amount * 2);
+          user.balance = Math.max(0, user.balance - winPayout);
         } else if (oldStatus === "cancelled") {
           user.balance = Math.max(0, user.balance - bet.amount);
         }
@@ -109,6 +117,13 @@ export async function PUT(req: NextRequest) {
     }
 
     bet.status = status;
+    if (status === "won") {
+      bet.payout = winPayout;
+    } else if (status === "cancelled") {
+      bet.payout = bet.amount;
+    } else if (status === "lost") {
+      bet.payout = 0;
+    }
     await bet.save();
     await user.save();
 

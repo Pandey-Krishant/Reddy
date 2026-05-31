@@ -40,6 +40,12 @@ const BetSchema = new Schema({
     enum: ["pending", "won", "lost", "cancelled"],
     default: "pending",
   },
+  // Actual amount credited on win (stake + 95% profit after 5% platform fee)
+  // 0 on loss, same as amount on cancel
+  payout: {
+    type: Number,
+    default: 0,
+  },
   placedAt: {
     type: Date,
     default: Date.now,

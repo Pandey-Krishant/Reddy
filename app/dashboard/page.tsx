@@ -635,6 +635,7 @@ function BetModal({
             <div className="px-6 pb-6 space-y-5">
               <div>
                 <p className="font-heading font-black text-sm tracking-[0.25em] uppercase text-sky-600 mb-4">Confirm Selection</p>
+                {/* Bet summary */}
                 <div className="rounded-2xl bg-white border border-slate-200 px-4 py-4 space-y-3">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="uppercase tracking-[0.18em] text-slate-500">Supporting</span>
@@ -642,9 +643,31 @@ function BetModal({
                   </div>
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="uppercase tracking-[0.18em] text-slate-500">BET Amount</span>
-                    <span className="font-heading font-black text-slate-900">{amount} Rs.</span>
+                    <span className="font-heading font-black text-slate-900">{num.toLocaleString()} Rs.</span>
                   </div>
                 </div>
+
+                {/* Win / Loss breakdown */}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-center">
+                    <p className="text-[9px] uppercase tracking-[0.18em] text-emerald-600 font-bold mb-1">If You Win 🏆</p>
+                    <p className="font-heading font-black text-emerald-700 text-base">+{Math.floor(num * 0.95).toLocaleString()} Rs.</p>
+                    <p className="text-[9px] text-emerald-500 mt-0.5">Return: {Math.floor(num + num * 0.95).toLocaleString()} Rs.</p>
+                  </div>
+                  <div className="rounded-2xl bg-rose-50 border border-rose-200 px-4 py-3 text-center">
+                    <p className="text-[9px] uppercase tracking-[0.18em] text-rose-600 font-bold mb-1">If You Lose ❌</p>
+                    <p className="font-heading font-black text-rose-700 text-base">−{num.toLocaleString()} Rs.</p>
+                    <p className="text-[9px] text-rose-400 mt-0.5">Balance deducted</p>
+                  </div>
+                </div>
+                {/* Platform fee notice */}
+                <div className="mt-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 flex items-center gap-2">
+                  <span className="text-amber-500 text-xs shrink-0">⚠️</span>
+                  <p className="text-[9px] text-amber-700 font-semibold leading-tight">
+                    5% platform fee will be deducted on winnings. Win ₹{num} → receive ₹{Math.floor(num * 0.95)} profit (₹{Math.ceil(num * 0.05)} fee deducted).
+                  </p>
+                </div>
+
                 {err && <p className="mt-3 text-[11px] font-semibold text-rose-500">{err}</p>}
               </div>
               <div className="flex gap-3">
