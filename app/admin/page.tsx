@@ -379,12 +379,12 @@ export default function AdminPage() {
                       <div className="flex gap-1.5">
                         <button onClick={()=>startProxyEdit(pm)} className="flex-1 bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 rounded-lg py-1.5 text-[10px] font-bold uppercase">Edit / Override</button>
                         <button onClick={()=>{
-                          const newStatus = display.status==="suspended"?"active":"suspended";
+                          const newStatus: AdminMatch["status"] = display.status==="suspended"?"active":"suspended";
                           if(override){
                             const idx=config.matches.findIndex(m=>m.title===pm.title&&m.team_a===pm.team_a);
                             quickUpdateAdminMatch(idx,{status:newStatus});
                           } else {
-                            const updated=[...config.matches,{...emptyMatch(),...pm,status:newStatus,order:config.matches.length}];
+                            const updated:AdminMatch[]=[...config.matches,{...emptyMatch(),...pm,status:newStatus,order:config.matches.length}];
                             setConfig(c=>({...c,matches:updated})); saveConfig({matches:updated});
                           }
                         }} className={`flex-1 rounded-lg py-1.5 text-[10px] font-bold uppercase ${display.status==="suspended"?"bg-emerald-500/20 text-emerald-400":"bg-red-500/20 text-red-400"}`}>
@@ -397,7 +397,7 @@ export default function AdminPage() {
                         {[pm.team_a,pm.team_b].map(t=>(
                           <button key={t} onClick={()=>{
                             if(override){const idx=config.matches.findIndex(m=>m.title===pm.title&&m.team_a===pm.team_a);quickUpdateAdminMatch(idx,{toss_winner:t});}
-                            else{const updated=[...config.matches,{...emptyMatch(),...pm,toss_winner:t,order:config.matches.length}];setConfig(c=>({...c,matches:updated}));saveConfig({matches:updated});}
+                            else{const updated:AdminMatch[]=[...config.matches,{...emptyMatch(),...pm,toss_winner:t,order:config.matches.length}];setConfig(c=>({...c,matches:updated}));saveConfig({matches:updated});}
                           }} className={`flex-1 rounded-lg py-1 text-[9px] font-bold uppercase ${display.toss_winner===t?"bg-yellow-500 text-slate-900":"bg-slate-700 text-slate-400 hover:bg-slate-600"}`}>{t}</button>
                         ))}
                       </div>
@@ -407,7 +407,7 @@ export default function AdminPage() {
                         {[pm.team_a,pm.team_b].map(t=>(
                           <button key={t} onClick={()=>{
                             if(override){const idx=config.matches.findIndex(m=>m.title===pm.title&&m.team_a===pm.team_a);quickUpdateAdminMatch(idx,{match_winner:t,status:"resulted"});}
-                            else{const updated=[...config.matches,{...emptyMatch(),...pm,match_winner:t,status:"resulted",order:config.matches.length}];setConfig(c=>({...c,matches:updated}));saveConfig({matches:updated});}
+                            else{const updated:AdminMatch[]=[...config.matches,{...emptyMatch(),...pm,match_winner:t,status:"resulted" as const,order:config.matches.length}];setConfig(c=>({...c,matches:updated}));saveConfig({matches:updated});}
                           }} className={`flex-1 rounded-lg py-1 text-[9px] font-bold uppercase ${display.match_winner===t?"bg-emerald-500 text-white":"bg-slate-700 text-slate-400 hover:bg-slate-600"}`}>{t}</button>
                         ))}
                       </div>
