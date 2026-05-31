@@ -15,6 +15,10 @@ interface Contest {
   selected_team: string;
   bid_points: number;
   gradient: string;
+  // admin overrides
+  status: "active" | "suspended" | "resulted";
+  toss_winner: string | null;
+  match_winner: string | null;
 }
 
 interface Notice {
@@ -115,38 +119,51 @@ function ContestCard({ c, now, onOpen }: { c: Contest; now: number; onOpen: (c: 
     "bg-gradient-to-r from-slate-900 to-emerald-950",
   ];
   const bgClass = bgColors[c.id % bgColors.length];
+  const isSuspended = c.status === "suspended";
+  const isResulted  = c.status === "resulted";
 
   return (
     <div
-      className="w-full overflow-hidden rounded-2xl shadow-xl cursor-pointer bg-white transition-all duration-200 active:scale-[0.98]"
-      onClick={() => onOpen(c)}
+      className={`w-full overflow-hidden rounded-2xl shadow-xl cursor-pointer bg-white transition-all duration-200 active:scale-[0.98] ${isSuspended ? "opacity-70" : ""}`}
+      onClick={() => !isSuspended && onOpen(c)}
     >
       {/* Dark section */}
       <div className={`relative overflow-hidden ${bgClass}`}>
-        {/* Carbon fibre overlay */}
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
 
-        <div className="relative z-10 w-full px-3 pt-2 pb-2.5 flex flex-col gap-2">
+        {/* Suspended overlay */}
+        {isSuspended && (
+          <div className="absolute inset-0 z-20 bg-black/60 flex items-center justify-center">
+            <span className="text-red-400 font-black text-xs uppercase tracking-widest border border-red-400/60 px-3 py-1 rounded-full">
+              🚫 SUSPENDED
+            </span>
+          </div>
+        )}
 
+        <div className="relative z-10 w-full px-3 pt-2 pb-2.5 flex flex-col gap-2">
           {/* Title row */}
           <div className="flex items-center justify-between gap-2">
             <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-amber-300 leading-tight line-clamp-2 flex-1">
               {c.title}
             </span>
             <span className="inline-flex items-center gap-0.5 text-[8px] text-emerald-200 font-bold shrink-0">
-              <i className="fa-solid fa-gamepad text-[9px]" />
-              <span>Game</span>
+              {isResulted ? "✓ DONE" : <><i className="fa-solid fa-gamepad text-[9px]" /><span>Game</span></>}
             </span>
           </div>
 
-          {/* Teams row — fixed 3-column: teamA | VS | teamB */}
+          {/* Teams row */}
           <div className="grid text-white" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
-
             {/* Team A */}
             <div className="flex flex-col items-center justify-center text-center pr-2 gap-0.5">
               <p className="text-xs font-black italic uppercase leading-tight break-words hyphens-auto w-full text-center">
                 {c.team_a}
               </p>
+              {c.toss_winner === c.team_a && (
+                <span className="text-[8px] font-black text-yellow-300 leading-none">🏆 TOSS WON</span>
+              )}
+              {c.match_winner === c.team_a && (
+                <span className="text-[8px] font-black text-emerald-300 leading-none">🥇 WINNER</span>
+              )}
               {c.has_bid && c.selected_team.toLowerCase() === c.team_a.toLowerCase() && (
                 <span className="text-[8px] font-black text-[#a3e635] leading-none">
                   {c.bid_points.toLocaleString()} Rs.
@@ -160,7 +177,7 @@ function ContestCard({ c, now, onOpen }: { c: Contest; now: number; onOpen: (c: 
                 VS
               </span>
               <span className="text-[7px] font-semibold text-yellow-300 whitespace-nowrap tabular-nums leading-none">
-                {fmt(c.close_time_ms - now)}
+                {isSuspended ? "—" : fmt(c.close_time_ms - now)}
               </span>
             </div>
 
@@ -169,23 +186,33 @@ function ContestCard({ c, now, onOpen }: { c: Contest; now: number; onOpen: (c: 
               <p className="text-xs font-black italic uppercase leading-tight break-words hyphens-auto w-full text-center">
                 {c.team_b}
               </p>
+              {c.toss_winner === c.team_b && (
+                <span className="text-[8px] font-black text-yellow-300 leading-none">🏆 TOSS WON</span>
+              )}
+              {c.match_winner === c.team_b && (
+                <span className="text-[8px] font-black text-emerald-300 leading-none">🥇 WINNER</span>
+              )}
               {c.has_bid && c.selected_team.toLowerCase() === c.team_b.toLowerCase() && (
                 <span className="text-[8px] font-black text-[#a3e635] leading-none">
                   {c.bid_points.toLocaleString()} Rs.
                 </span>
               )}
             </div>
-
           </div>
         </div>
       </div>
 
       {/* Footer bar */}
-      <div className={`w-full flex items-center justify-center px-3 py-1.5 ${c.has_bid ? "bg-lime-400" : "bg-[#facc15]"}`}>
+      <div className={`w-full flex items-center justify-center px-3 py-1.5 ${
+        isSuspended ? "bg-red-500" :
+        isResulted  ? "bg-violet-400" :
+        c.has_bid   ? "bg-lime-400"   : "bg-[#facc15]"
+      }`}>
         <span className="text-[8px] font-bold uppercase tracking-widest text-slate-900 text-center leading-tight">
-          {c.has_bid
-            ? `✓ BET PLACED · CLOSE: ${c.close_time_label}`
-            : `TOSS BET CLOSE TIME : ${c.close_time_label}`}
+          {isSuspended ? "🚫 BETTING SUSPENDED" :
+           isResulted  ? `✓ RESULT: ${c.match_winner ?? "TBD"}` :
+           c.has_bid   ? `✓ BET PLACED · CLOSE: ${c.close_time_label}` :
+                         `TOSS BET CLOSE TIME : ${c.close_time_label}`}
         </span>
       </div>
     </div>
@@ -651,6 +678,7 @@ export default function DashboardPage() {
   const [contests, setContests] = useState<Contest[]>([]);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [welcomeText, setWelcomeText] = useState("Welcome to the Platform. Asia's No. 1 Gaming Platform. Min bet 100, Min Withdraw 500, Get 200 for Each Referral.");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -686,65 +714,109 @@ export default function DashboardPage() {
       // 1. Fetch User Data
       await fetchUserWallet();
 
-      // 2. Fetch User Bets
+      // 2. Fetch User Bets + SiteConfig in parallel
+      const [betsRes, cfgRes, proxyRes] = await Promise.all([
+        fetch("/api/local/bets"),
+        fetch("/api/local/siteconfig"),
+        fetch("/api/proxy/dashboard", {
+          credentials: "include",
+          headers: { "X-Requested-With": "XMLHttpRequest", Accept: "application/json" },
+        }),
+      ]);
+
       let userBets: BetRecord[] = [];
-      const betsRes = await fetch("/api/local/bets");
       if (betsRes.ok) {
         const bd = await betsRes.json();
         userBets = bd.bets || [];
       }
 
-      // 3. Fetch PTB Proxy Contests
-      const r = await fetch("/api/proxy/dashboard", {
-        credentials: "include",
-        headers: { "X-Requested-With": "XMLHttpRequest", Accept: "application/json" },
-      });
-
-      if (r.status === 401) {
-        window.location.href = "/";
-        return;
+      // Admin config — notices, welcome text, match overrides
+      type AdminMatchCfg = { title:string; team_a:string; status:string; toss_winner:string|null; match_winner:string|null; };
+      let adminMatches: AdminMatchCfg[] = [];
+      let adminNotices: Notice[] = [];
+      let welcomeText = "";
+      if (cfgRes.ok) {
+        const cf = await cfgRes.json();
+        adminMatches = cf.matches || [];
+        welcomeText = cf.welcome_text || "";
+        adminNotices = (cf.notices || []).map((n: Record<string,unknown>, i: number) => ({
+          text: String(n.text ?? ""),
+          color: NOTICE_COLOR_CYCLE[i % NOTICE_COLOR_CYCLE.length],
+        })).filter((n: Notice) => n.text);
       }
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const d = await r.json();
+      if (welcomeText) setWelcomeText(welcomeText);
+      if (adminNotices.length) setNotices(adminNotices);
 
-      const list: Contest[] = (d.contests ?? [])
+      if (proxyRes.status === 401) { window.location.href = "/"; return; }
+      if (!proxyRes.ok) throw new Error(`HTTP ${proxyRes.status}`);
+      const d = await proxyRes.json();
+
+      // Helper: find admin override for a proxy match
+      function getOverride(title: string, team_a: string) {
+        return adminMatches.find(m => m.title === title && m.team_a === team_a);
+      }
+
+      // Build proxy contests, applying admin overrides
+      const proxyList: Contest[] = (d.contests ?? [])
         .map((c: Record<string, unknown>, i: number) => {
           const id = Number(c.id);
-          const activeLocalBet = userBets.find((b) => b.matchId === id && b.status === "pending");
-
+          const title = String(c.title ?? c.match_title ?? c.league ?? "Match");
+          const team_a = String(c.team_a ?? "");
+          const team_b = String(c.team_b ?? "");
+          const override = getOverride(title, team_a);
+          const activeLocalBet = userBets.find(b => b.matchId === id && b.status === "pending");
           return {
             id,
-            title: String(c.title ?? c.match_title ?? c.league ?? "Match"),
-            team_a: String(c.team_a ?? ""),
-            team_b: String(c.team_b ?? ""),
+            title,
+            team_a,
+            team_b,
             close_time_label: String(c.close_time_label ?? c.close_time ?? ""),
             close_time_ms: Number(c.close_time_ms ?? c.close_timestamp_ms ?? 0),
             has_bid: !!activeLocalBet,
             selected_team: activeLocalBet ? activeLocalBet.selectedTeam : "",
             bid_points: activeLocalBet ? activeLocalBet.amount : 0,
             gradient: GRADIENTS[i % GRADIENTS.length],
+            status: (override?.status ?? "active") as Contest["status"],
+            toss_winner: override?.toss_winner ?? null,
+            match_winner: override?.match_winner ?? null,
           };
         })
         .filter((c: Contest) => c.team_a && c.team_b);
-      setContests(list);
 
-      // Parse notices
-      const rawNotices: Notice[] = (d.notices ?? [])
-        .map((n: Record<string, unknown>, i: number) => ({
-          text: String(n.text ?? n.message ?? ""),
-          color: NOTICE_COLOR_CYCLE[i % NOTICE_COLOR_CYCLE.length],
-        }))
-        .filter((n: Notice) => n.text);
+      // Admin-created matches (not from proxy) — use negative IDs to avoid collision
+      const adminOnlyMatches: Contest[] = adminMatches
+        .filter(am => !proxyList.find(p => p.title === am.title && p.team_a === am.team_a))
+        .map((am: Record<string,unknown>, i: number) => {
+          const id = -(i + 1);
+          const activeLocalBet = userBets.find(b => b.matchId === id && b.status === "pending");
+          return {
+            id,
+            title: String(am.title ?? ""),
+            team_a: String(am.team_a ?? ""),
+            team_b: String(am.team_b ?? ""),
+            close_time_label: String(am.close_time_label ?? ""),
+            close_time_ms: Number(am.close_time_ms ?? 0),
+            has_bid: !!activeLocalBet,
+            selected_team: activeLocalBet ? activeLocalBet.selectedTeam : "",
+            bid_points: activeLocalBet ? activeLocalBet.amount : 0,
+            gradient: GRADIENTS[i % GRADIENTS.length],
+            status: (String(am.status ?? "active")) as Contest["status"],
+            toss_winner: (am.toss_winner as string|null) ?? null,
+            match_winner: (am.match_winner as string|null) ?? null,
+          };
+        })
+        .filter((c: Contest) => c.team_a && c.team_b);
 
-      // Fallback notices
-      if (!rawNotices.length && list.length) {
-        const derived = list.slice(0, 5).map((c, i) => ({
+      const allContests = [...adminOnlyMatches, ...proxyList];
+      setContests(allContests);
+
+      // Notices fallback
+      if (!adminNotices.length) {
+        const derived = allContests.slice(0, 5).map((c, i) => ({
           text: `${c.team_a} vs ${c.team_b} — TOSS BET OPEN`,
           color: NOTICE_COLOR_CYCLE[i % NOTICE_COLOR_CYCLE.length],
         }));
         setNotices(derived);
-      } else {
-        setNotices(rawNotices);
       }
     } catch (e) {
       console.error("[dashboard] load error", e);
@@ -851,10 +923,10 @@ export default function DashboardPage() {
             <div className="w-full overflow-hidden px-4 md:px-6">
               <div className="dashboard-welcome-marquee-track text-slate-900 text-[13px] md:text-base font-black italic uppercase tracking-wider whitespace-nowrap">
                 <span className="inline-flex items-center shrink-0 pr-16">
-                  Welcome to Reddy Win. Asia&apos;s No. 1 Gaming Platform. Min bet 100, Min Withdraw 500. Get IDs and top up by tapping Deposit!
+                  {welcomeText}
                 </span>
                 <span className="inline-flex items-center shrink-0 pr-16" aria-hidden="true">
-                  Welcome to Reddy Win. Asia&apos;s No. 1 Gaming Platform. Min bet 100, Min Withdraw 500. Get IDs and top up by tapping Deposit!
+                  {welcomeText}
                 </span>
               </div>
             </div>
