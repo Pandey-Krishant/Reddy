@@ -95,12 +95,16 @@ function MatchForm({ form, setForm, onSave, onCancel, saving, isEdit }:{
           <input value={form.team_b} onChange={e=>setForm({...form,team_b:e.target.value})} placeholder="e.g. AUSTRALIA" className="inp"/>
         </div>
         <div>
-          <label className="label">Close Time Label</label>
-          <input value={form.close_time_label} onChange={e=>setForm({...form,close_time_label:e.target.value})} placeholder="e.g. 6:30 pm" className="inp"/>
+          <label className="label">Close Time Label <span className="text-slate-500 normal-case">(auto-fills from datetime)</span></label>
+          <input value={form.close_time_label} onChange={e=>setForm({...form,close_time_label:e.target.value})} placeholder="e.g. 6:30 PM" className="inp"/>
         </div>
         <div>
           <label className="label">Close Time (datetime)</label>
-          <input type="datetime-local" value={dtVal} onChange={e=>setForm({...form,close_time_ms:new Date(e.target.value).getTime()})} className="inp"/>
+          <input type="datetime-local" value={dtVal} onChange={e=>{
+            const ms = new Date(e.target.value).getTime();
+            const autoLabel = isNaN(ms) ? form.close_time_label : new Date(ms).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:true}).toUpperCase();
+            setForm({...form, close_time_ms: ms, close_time_label: autoLabel});
+          }} className="inp"/>
         </div>
       </div>
 

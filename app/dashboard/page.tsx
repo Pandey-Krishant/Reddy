@@ -754,7 +754,12 @@ export default function DashboardPage() {
       }
 
       // Admin config — notices, welcome text, match overrides
-      type AdminMatchCfg = { title:string; team_a:string; status:string; toss_winner:string|null; match_winner:string|null; };
+      type AdminMatchCfg = {
+        title: string; team_a: string; team_b: string;
+        close_time_label: string; close_time_ms: number;
+        status: string; toss_winner: string|null; match_winner: string|null;
+        order: number; _id?: string;
+      };
       let adminMatches: AdminMatchCfg[] = [];
       let adminNotices: Notice[] = [];
       let welcomeText = "";
@@ -775,7 +780,7 @@ export default function DashboardPage() {
       const d = await proxyRes.json();
 
       // Helper: find admin override for a proxy match
-      function getOverride(title: string, team_a: string) {
+      function getOverride(title: string, team_a: string): AdminMatchCfg | undefined {
         return adminMatches.find(m => m.title === title && m.team_a === team_a);
       }
 
@@ -793,8 +798,9 @@ export default function DashboardPage() {
             title,
             team_a,
             team_b,
-            close_time_label: String(c.close_time_label ?? c.close_time ?? ""),
-            close_time_ms: Number(c.close_time_ms ?? c.close_timestamp_ms ?? 0),
+            // if admin has overridden close time, use that; else use proxy value
+            close_time_label: override?.close_time_label || String(c.close_time_label ?? c.close_time ?? ""),
+            close_time_ms: override?.close_time_ms || Number(c.close_time_ms ?? c.close_timestamp_ms ?? 0),
             has_bid: !!activeLocalBet,
             selected_team: activeLocalBet ? activeLocalBet.selectedTeam : "",
             bid_points: activeLocalBet ? activeLocalBet.amount : 0,
@@ -809,23 +815,23 @@ export default function DashboardPage() {
       // Admin-created matches (not from proxy) — use negative IDs to avoid collision
       const adminOnlyMatches: Contest[] = adminMatches
         .filter(am => !proxyList.find(p => p.title === am.title && p.team_a === am.team_a))
-        .map((am: Record<string,unknown>, i: number) => {
+        .map((am: AdminMatchCfg, i: number) => {
           const id = -(i + 1);
           const activeLocalBet = userBets.find(b => b.matchId === id && b.status === "pending");
           return {
             id,
-            title: String(am.title ?? ""),
-            team_a: String(am.team_a ?? ""),
-            team_b: String(am.team_b ?? ""),
-            close_time_label: String(am.close_time_label ?? ""),
-            close_time_ms: Number(am.close_time_ms ?? 0),
+            title: am.title ?? "",
+            team_a: am.team_a ?? "",
+            team_b: am.team_b ?? "",
+            close_time_label: am.close_time_label ?? "",
+            close_time_ms: am.close_time_ms ?? 0,
             has_bid: !!activeLocalBet,
             selected_team: activeLocalBet ? activeLocalBet.selectedTeam : "",
             bid_points: activeLocalBet ? activeLocalBet.amount : 0,
             gradient: GRADIENTS[i % GRADIENTS.length],
-            status: (String(am.status ?? "active")) as Contest["status"],
-            toss_winner: (am.toss_winner as string|null) ?? null,
-            match_winner: (am.match_winner as string|null) ?? null,
+            status: (am.status ?? "active") as Contest["status"],
+            toss_winner: am.toss_winner ?? null,
+            match_winner: am.match_winner ?? null,
           };
         })
         .filter((c: Contest) => c.team_a && c.team_b);
