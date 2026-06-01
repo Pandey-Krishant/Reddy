@@ -110,7 +110,7 @@ function fmt(ms: number) {
   return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m ${s % 60}s`;
 }
 
-function ContestCard({ c, now, onOpen }: { c: Contest; now: number; onOpen: (c: Contest) => void }) {
+function ContestCard({ c, idx, now, onOpen }: { c: Contest; idx: number; now: number; onOpen: (c: Contest) => void }) {
   const bgColors = [
     "bg-slate-900",
     "bg-gradient-to-r from-slate-900 to-slate-800",
@@ -118,7 +118,7 @@ function ContestCard({ c, now, onOpen }: { c: Contest; now: number; onOpen: (c: 
     "bg-gradient-to-r from-slate-900 to-sky-950",
     "bg-gradient-to-r from-slate-900 to-emerald-950",
   ];
-  const bgClass = bgColors[c.id % bgColors.length];
+  const bgClass = bgColors[idx % bgColors.length];
   const isSuspended = c.status === "suspended";
   const isResulted  = c.status === "resulted";
 
@@ -1019,8 +1019,8 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {contests.map((c) => (
-              <ContestCard key={c.id} c={c} now={now} onOpen={setActiveContest} />
+            {contests.map((c, i) => (
+              <ContestCard key={c.id ?? i} c={c} idx={i} now={now} onOpen={setActiveContest} />
             ))}
           </div>
         )}
