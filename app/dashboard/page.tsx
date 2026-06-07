@@ -927,6 +927,27 @@ export default function DashboardPage() {
                 Exp: {wallet ? wallet.exposure.toLocaleString() : "—"} Rs.
               </span>
             </div>
+            {/* Withdraw & Deposit quick buttons */}
+            <a
+              href="https://t.me/Reddy_win"
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-1 rounded-xl border border-rose-500/40 bg-rose-500/15 px-2.5 py-1.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-rose-400 hover:bg-rose-500/25 transition-colors whitespace-nowrap shrink-0"
+              title="Withdraw"
+            >
+              <i className="fa-solid fa-arrow-up-from-bracket text-[8px] md:text-[9px]" />
+              <span>W</span>
+            </a>
+            <a
+              href="https://t.me/Reddy_win"
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-1 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/25 transition-colors whitespace-nowrap shrink-0"
+              title="Deposit"
+            >
+              <i className="fa-solid fa-download text-[8px] md:text-[9px]" />
+              <span>D</span>
+            </a>
             <button
               onClick={() => setDrawerOpen(true)}
               className="p-2 hover:bg-white/10 rounded-xl transition-colors text-white shrink-0"
